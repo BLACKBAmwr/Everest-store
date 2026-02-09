@@ -1,111 +1,132 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageSquare, Send, X, Bot, User } from 'lucide-react';
-import { getAIResponse } from '../services/geminiService';
+import { MessageSquare, X, Send, Bot, User } from 'lucide-react';
+import { getChatResponse } from '../services/gemini';
+import { STORE_NAME } from '../constants';
 
 const AIChat: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<{ role: 'ai' | 'user'; text: string }[]>([
-    { role: 'ai', text: 'أهلاً بك في متجر إيفرست! أنا مساعدك الذكي، كيف يمكنني مساعدتك اليوم بخصوص شحن الروبكس؟' }
-  ]);
+  const [messages, setMessages] = useState<{role: 'user' | 'model', text: string}[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    scrollToBottom();
   }, [messages]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
-    const userMsg = input;
+    const userMsg = input.trim();
     setInput('');
     setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
     setIsLoading(true);
 
-    const response = await getAIResponse(userMsg);
-    setMessages(prev => [...prev, { role: 'ai', text: response }]);
+    const history = messages.map(m => ({
+      role: m.role,
+      parts: [{ text: m.text }]
+    }));
+
+    const aiResponse = await getChatResponse(userMsg, history);
+    setMessages(prev => [...prev, { role: 'model', text: aiResponse }]);
     setIsLoading(false);
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <>
+      {/* Floating Button */}
       {!isOpen && (
-        <button
+        <button 
           onClick={() => setIsOpen(true)}
-          className="gold-gradient p-4 rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center justify-center text-black"
+          className="fixed bottom-6 right-6 w-16 h-16 gold-bg rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-transform z-50 float"
         >
-          <MessageSquare size={28} />
+          <MessageSquare className="w-8 h-8 text-black" />
         </button>
       )}
 
+      {/* Chat Window */}
       {isOpen && (
-        <div className="bg-neutral-900 border border-neutral-800 w-80 md:w-96 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="gold-gradient p-4 flex justify-between items-center text-black font-bold">
-            <div className="flex items-center gap-2">
-              <Bot size={20} />
-              <span>مساعد إيفرست الذكي</span>
+        <div className="fixed bottom-6 right-6 w-[95vw] md:w-[450px] h-[650px] glass rounded-3xl shadow-2xl z-50 flex flex-col border border-white/10 overflow-hidden">
+          {/* Header */}
+          <div className="p-6 gold-bg flex justify-between items-center text-black">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-black/10 rounded-full flex items-center justify-center">
+                <Bot className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold">مساعد إيفرست الذكي</h3>
+                <p className="text-xs opacity-70">بواسطة {STORE_NAME}</p>
+              </div>
             </div>
-            <button onClick={() => setIsOpen(false)} className="hover:opacity-70">
-              <X size={20} />
+            <button onClick={() => setIsOpen(false)} className="hover:bg-black/10 p-2 rounded-full transition-colors">
+              <X className="w-6 h-6" />
             </button>
           </div>
 
-          <div 
-            ref={scrollRef}
-            className="h-80 overflow-y-auto p-4 flex flex-col gap-4 bg-black/40"
-          >
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            {messages.length === 0 && (
+              <div className="text-center text-gray-400 mt-10">
+                <Bot className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                <p>مرحباً بك في {STORE_NAME}! <br /> كيف يمكنني مساعدتك اليوم؟</p>
+              </div>
+            )}
             {messages.map((msg, i) => (
-              <div
-                key={i}
-                className={`flex items-start gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
-              >
-                <div className={`p-2 rounded-full ${msg.role === 'user' ? 'bg-amber-600' : 'bg-neutral-800'}`}>
-                  {msg.role === 'user' ? <User size={14} /> : <Bot size={14} />}
-                </div>
-                <div className={`max-w-[80%] p-3 rounded-2xl text-sm leading-relaxed ${
+              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] p-4 rounded-2xl flex gap-3 ${
                   msg.role === 'user' 
-                    ? 'bg-amber-600 text-white rounded-tr-none' 
-                    : 'bg-neutral-800 text-neutral-200 rounded-tl-none border border-neutral-700'
+                    ? 'bg-[#D4AF37] text-black rounded-bl-none' 
+                    : 'bg-white/5 text-white border border-white/10 rounded-br-none'
                 }`}>
-                  {msg.text}
+                  <div className="shrink-0 pt-1">
+                    {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4 gold-text" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] leading-relaxed break-words whitespace-pre-wrap">{msg.text}</p>
+                  </div>
                 </div>
               </div>
             ))}
             {isLoading && (
-              <div className="flex items-start gap-2">
-                <div className="p-2 rounded-full bg-neutral-800">
-                  <Bot size={14} />
-                </div>
-                <div className="bg-neutral-800 p-3 rounded-2xl animate-pulse text-neutral-400 text-xs">
-                  جاري التفكير...
+              <div className="flex justify-start">
+                <div className="bg-white/5 p-4 rounded-2xl border border-white/10 flex gap-1">
+                  <div className="w-1.5 h-1.5 bg-[#D4AF37] rounded-full animate-bounce"></div>
+                  <div className="w-1.5 h-1.5 bg-[#D4AF37] rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                  <div className="w-1.5 h-1.5 bg-[#D4AF37] rounded-full animate-bounce [animation-delay:-0.3s]"></div>
                 </div>
               </div>
             )}
+            <div ref={chatEndRef} />
           </div>
 
-          <div className="p-3 border-t border-neutral-800 bg-neutral-900 flex gap-2">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="اكتب استفسارك هنا..."
-              className="flex-1 bg-black border border-neutral-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500 transition-colors"
-            />
-            <button 
-              onClick={handleSend}
-              className="gold-gradient p-2 rounded-lg text-black hover:opacity-90 transition-opacity"
-            >
-              <Send size={18} />
-            </button>
+          {/* Input */}
+          <div className="p-4 border-t border-white/10 bg-black/40">
+            <div className="relative">
+              <input 
+                type="text" 
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                placeholder="اكتب رسالتك..."
+                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 pr-12 focus:outline-none focus:border-[#D4AF37] transition-all"
+              />
+              <button 
+                onClick={handleSend}
+                disabled={isLoading}
+                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 gold-text hover:bg-white/5 rounded-lg transition-colors"
+              >
+                <Send className="w-5 h-5 rotate-180" />
+              </button>
+            </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

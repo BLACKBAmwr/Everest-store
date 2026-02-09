@@ -1,7 +1,5 @@
 {
   "name": "Everest Store - Roblox Robux",
-  "description": "The premium destination for buying Roblox Robux in Egypt. Best rates, fast delivery via Gamepass/Gift, and professional support.",
-  "requestFramePermissions": [
-    "microphone"
-  ]
+  "description": "Professional store for selling Roblox Robux with a smart AI assistant and automated pricing calculator.",
+  "requestFramePermissions": []
 }

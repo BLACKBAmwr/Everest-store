@@ -1,23 +1,32 @@
 
-export interface Package {
-  id: number;
-  robux: number;
-  basePrice: number;
-  tax: number;
-  total: number;
-  popular?: boolean;
-}
+import React from 'react';
 
 export interface Review {
-  id: number;
+  id: string;
   name: string;
   rating: number;
   comment: string;
   date: string;
 }
 
-export interface Stats {
-  deals: number;
-  customers: number;
-  totalEGP: number;
+export interface Stat {
+  label: string;
+  value: string;
+  icon: React.ReactNode;
+}
+
+export interface TeamMember {
+  name: string;
+  alias?: string;
+  role: string;
+  country: string;
+  discord?: string;
+  isLeader?: boolean;
+}
+
+export interface Package {
+  amount: number;
+  price: number;
+  tax: number;
+  total: number;
 }
